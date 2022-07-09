@@ -1,0 +1,53 @@
+Parameters:
+  #you should change VPC Value to your VPC ID in json file 
+  myVPC:
+      Description: VPC used to deploy our resources below
+      Type: AWS::EC2::VPC::Id
+  #you should change Subnet Value to your Subnet ID in json file 
+  PublicSubnet:
+      Description: Subnet to be used for our Web Server
+      Type: AWS::EC2::Subnet::Id
+  AMItoUse:
+  # you can choose which OS you prefer to use for your instance in jason file 
+      Description: AMI to use for our base image
+      Type: String
+Resources:
+  myWebAccessSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: Allow http to our test host
+        VpcId:
+        #this call  your VPC
+          Ref: myVPC
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+  myWebServerInstance: 
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      # this will take the image iso of amazon os 
+      ImageId: !Ref AMItoUse
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          DeviceIndex: "0"
+          GroupSet: 
+          #this call your  VPC
+            - Ref: "myWebAccessSecurityGroup"
+          SubnetId: 
+          #this call your subnet
+            Ref: "PublicSubnet"
+      # this will initiate When starting 
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd
+          systemctl start httpd
